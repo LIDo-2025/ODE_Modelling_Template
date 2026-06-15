@@ -1,0 +1,42 @@
+{
+  "name": "scryptIQ-VE Codespace",
+
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+
+  "containerEnv": {
+    "PIP_USER": "false"
+  },
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/home/vscode/.venv/bin/python",
+        "python.terminal.activateEnvInCurrentTerminal": true,
+        "python.venvFolders": [
+          "/home/vscode/.venv"
+        ],
+        "jupyter.kernels.trusted": [
+          "/home/vscode/.venv/bin/python"
+        ]
+      },
+      "extensions": [
+        "ms-python.python@2026.4.0",
+        "ms-python.vscode-pylance@2026.2.1",
+        "ms-toolsai.jupyter@2025.9.1",
+        "ms-toolsai.jupyter-keymap@1.1.2",
+        "ms-toolsai.jupyter-renderers@1.3.0"
+      ]
+    }
+  },
+
+  "remoteUser": "vscode",
+
+  "shutdownAction": "stopContainer",
+
+  "github.copilot.enable": {
+   "*": false
+  }
+}

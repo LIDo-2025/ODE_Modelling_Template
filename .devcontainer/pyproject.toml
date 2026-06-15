@@ -1,0 +1,28 @@
+
+[project]
+name = "scryptiq-VE"
+version = "0.1.0"
+description = "scryptIQ General Virtual Environment"
+requires-python = ">=3.13"
+
+dependencies = [
+    "jupyterlab>=4",
+    "ipykernel>=7",
+    "ipywidgets",
+    "requests",
+    "numpy<2.4",
+    "pandas<2.4", 
+    "scipy<1.17",
+    "scikit-learn<1.8",
+    "matplotlib<3.11",
+    "seaborn<0.14",
+    "plotly<6.4",
+    "nibabel",
+    "ucimlrepo>=0.0.7",
+    "imblearn>=0.0",
+    "fastcluster>=1.3.0",
+    "umap-learn>=0.5.11",
+]
+
+[dependency-groups]
+dev = []
