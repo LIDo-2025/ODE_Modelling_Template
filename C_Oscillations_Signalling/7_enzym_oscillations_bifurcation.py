@@ -283,4 +283,4 @@ if __name__ == "__main__":
     print("="*70)
     plt.show()
 
-    plot_img.savefig("/Users/geroldbaier/Documents/GitHub/ode-modelling-baierx/C_Oscillations_Signalling/oscillator_bifurcations.png")
+    plot_img.savefig("/Users/geroldbaier/Documents/GitHub/ODE_Modelling_Template/C_Oscillations_Signalling/oscillator_bifurcations.png")
