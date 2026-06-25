@@ -1,0 +1,6 @@
+{
+  "python.locator": "js",
+  "python.experiments.enabled": false,
+  "python.defaultInterpreterPath": "/opt/anaconda3/bin/python",
+  "python.condaPath": "/opt/anaconda3/bin/conda"
+}

@@ -1,3 +1,4 @@
+# %%
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
@@ -7,7 +8,7 @@ def model(t, variables, a1, b1, a2, b2, k_max, K_m, k_i, n, m, q):
     """Coupled system with feedback inhibition"""
     S, P = variables
     
-    enzymatic_rate = (k_max * S**n) / (K_m**m + S**m) / (1 + k_i * P**q)
+    enzymatic_rate = (k_max * S**n) / (K_m + S**m) / (1 + k_i * P**q)
     
     dSdt = a1 - b1 * S - enzymatic_rate
     dPdt = a2 - b2 * P + enzymatic_rate
@@ -110,50 +111,54 @@ def create_bifurcation_diagram(a1_range, model_func, initial_conditions,
             np.array(P_mins), np.array(P_maxs))
 
 
-def plot_bifurcation_diagram(a1_values, S_mins, S_maxs, P_mins, P_maxs, 
+def plot_bifurcation_diagram(a1_values, S_mins, S_maxs, P_mins, P_maxs,
                              save_filename='bifurcation_diagram_corrected.png',
                              oscillation_range=None):
     """
     Plot the bifurcation diagram with BOTH min and max clearly visible.
     """
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
-    
-    # Highlight oscillation region if provided
-    if oscillation_range is not None:
-        ax1.axvspan(oscillation_range[0], oscillation_range[1], 
-                   alpha=0.15, color='yellow', label='Expected oscillations')
-        ax2.axvspan(oscillation_range[0], oscillation_range[1], 
-                   alpha=0.15, color='yellow', label='Expected oscillations')
-    
+
+    # Shade the oscillatory region as a filled band between min and max.
+    # Where min ≈ max (steady state) the band collapses to nothing automatically;
+    # it expands only where oscillations are present.
+    osc_color = '#4C9BE8'  # soft blue
+    ax1.fill_between(a1_values, S_mins, S_maxs,
+                     alpha=0.25, color=osc_color, label='Oscillatory region')
+    ax2.fill_between(a1_values, P_mins, P_maxs,
+                     alpha=0.25, color=osc_color, label='Oscillatory region')
+
     # Plot substrate bifurcation diagram
     # Plot minima in BLUE and maxima in RED
-    ax1.plot(a1_values, S_mins, 'o', color='blue', markersize=4, 
+    ax1.plot(a1_values, S_mins, 'o', color='blue', markersize=4,
              alpha=0.6, label='S min', markeredgewidth=0)
-    ax1.plot(a1_values, S_maxs, 'o', color='red', markersize=4, 
+    ax1.plot(a1_values, S_maxs, 'o', color='red', markersize=4,
              alpha=0.6, label='S max', markeredgewidth=0)
-    
+
     ax1.set_xlabel('Parameter a1', fontsize=13, fontweight='bold')
     ax1.set_ylabel('Substrate (S)', fontsize=13, fontweight='bold')
-    ax1.set_title('Bifurcation Diagram - Substrate Concentration', 
+    ax1.set_title('Bifurcation Diagram - Substrate Concentration',
                   fontsize=15, fontweight='bold')
     ax1.grid(True, alpha=0.3, linestyle='--')
     ax1.legend(fontsize=11, loc='best')
     ax1.tick_params(labelsize=11)
-    
+    ax1.set_facecolor('lightyellow')
+
     # Plot product bifurcation diagram
-    ax2.plot(a1_values, P_mins, 'o', color='blue', markersize=4, 
+    ax2.plot(a1_values, P_mins, 'o', color='blue', markersize=4,
              alpha=0.6, label='P min', markeredgewidth=0)
-    ax2.plot(a1_values, P_maxs, 'o', color='red', markersize=4, 
+    ax2.plot(a1_values, P_maxs, 'o', color='red', markersize=4,
              alpha=0.6, label='P max', markeredgewidth=0)
-    
+
     ax2.set_xlabel('Parameter a1', fontsize=13, fontweight='bold')
     ax2.set_ylabel('Product (P)', fontsize=13, fontweight='bold')
-    ax2.set_title('Bifurcation Diagram - Product Concentration', 
+    ax2.set_title('Bifurcation Diagram - Product Concentration',
                   fontsize=15, fontweight='bold')
     ax2.grid(True, alpha=0.3, linestyle='--')
     ax2.legend(fontsize=11, loc='best')
     ax2.tick_params(labelsize=11)
-    
+    ax2.set_facecolor('lightyellow')
+
     plt.tight_layout()
     plt.savefig(save_filename, dpi=300, bbox_inches='tight')
     print(f"\nFigure saved as: {save_filename}")
@@ -230,7 +235,7 @@ if __name__ == "__main__":
         'b2': 0.05,
         'a2': 0.02,
         'k_max': 25.0,
-        'K_m': 0.7,
+        'K_m': 0.34,
         'k_i': 0.06,
         'n': 1,
         'm': 3,
@@ -284,3 +289,5 @@ if __name__ == "__main__":
     plt.show()
 
     plot_img.savefig("/Users/geroldbaier/Documents/GitHub/ODE_Modelling_Template/C_Oscillations_Signalling/oscillator_bifurcations.png")
+
+# %%
