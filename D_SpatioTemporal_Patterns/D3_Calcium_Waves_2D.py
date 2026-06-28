@@ -40,15 +40,15 @@ PLOT_EVERY = 5      # redraw every N steps  (lower = smoother, slower)
 SEED       = 42     # random seed for reproducible initial noise
 
 # ── ③ Pacemaker settings ──────────────────────────────────────────────────────
-STIM_AMP   = 1.0    # stimulus amplitude
-STIM_FREQ  = 0.11   # stimulus frequency  (pacemaker period ≈ 1/STIM_FREQ)
+STIM_AMP   = 0.0    # stimulus amplitude
+STIM_FREQ  = 0.09   # stimulus frequency  (pacemaker period ≈ 1/STIM_FREQ)
 STIM_R     = 4      # pacemaker disc radius (cells)
 
 # phase_shift = 0   → target;   phase_shift = 0.3 → clean single-arm spiral
 PHASE_SHIFT = 0.0 if MODE == "target" else 0.3
 
 # ── ④ Model parameters ────────────────────────────────────────────────────────
-A   = 0.33    # Ca²⁺ inflow (oscillatory bulk)
+A   = 0.32    # Ca²⁺ inflow (oscillatory bulk)
 M2  = 20.0
 M3  = 23.0
 KA  = 0.8
