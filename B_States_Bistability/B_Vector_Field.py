@@ -22,9 +22,12 @@ Controls
 """
 
 import numpy as np
+from pathlib import Path
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button, Slider
 from scipy.optimize import fsolve
+
+EXPORT_HTML = False   # set True to save animation as HTML instead of showing interactively
 
 # ── Colour theme ─────────────────────────────────────────────────────────────
 BG_FIG   = '#12121f'   # figure background
@@ -211,7 +214,7 @@ plt.rcParams.update({
 fig, ax = plt.subplots(figsize=(9, 8))
 fig.patch.set_facecolor(BG_FIG)
 ax.set_facecolor(BG_AXES)
-plt.subplots_adjust(bottom=0.28, left=0.10, right=0.88)
+plt.subplots_adjust(bottom=0.08 if EXPORT_HTML else 0.28, left=0.10, right=0.88)
 
 ax.set_xlabel('Protein  u', fontsize=13)
 ax.set_ylabel('Protein  v', fontsize=13)
@@ -380,64 +383,82 @@ def rebuild(alpha, n):
 # Widgets
 # ─────────────────────────────────────────────────────────────────────────────
 
-ax_btn_pause = plt.axes([0.10, 0.03, 0.12, 0.04])
-ax_btn_regen = plt.axes([0.78, 0.03, 0.12, 0.04])
-ax_sl_alpha  = plt.axes([0.25, 0.14, 0.50, 0.025])
-ax_sl_n      = plt.axes([0.25, 0.09, 0.50, 0.025])
+# ── Launch ───────────────────────────────────────────────────────────────────
+if EXPORT_HTML:
+    from matplotlib.animation import FuncAnimation
 
-btn_pause = Button(ax_btn_pause, 'Pause')
-btn_regen = Button(ax_btn_regen, 'Regenerate',
-                   color='#1e3a2a', hovercolor='#2d5a3a')
-sl_alpha  = Slider(ax_sl_alpha, 'α  (max. expression)', 1.0, 20.0,
-                   valinit=ALPHA, valstep=0.5)
-sl_n      = Slider(ax_sl_n,     'n  (cooperativity)',   1,   5,
-                   valinit=N,    valstep=1)
+    def _export_update(fi):
+        current_frame[0] = fi          # FuncAnimation drives the frame counter
+        update_frame()                 # animation_running=True so lines grow normally
 
+    anim = FuncAnimation(fig, _export_update, frames=NUM_FRAMES,
+                         interval=50, blit=False)
+    out  = Path(__file__).parent / 'Export' / 'B_Vector_Field.html'
+    out.parent.mkdir(exist_ok=True)
+    print(f"Rendering {NUM_FRAMES} frames to HTML …")
+    out.write_text(anim.to_jshtml(fps=20, default_mode='loop'))
+    print(f"Saved → {out}")
+    plt.close()
 
-def toggle_pause(event):
-    global animation_running
-    animation_running = not animation_running
-    btn_pause.label.set_text('Play' if not animation_running else 'Pause')
+else:
+    ax_btn_pause = plt.axes([0.10, 0.03, 0.12, 0.04])
+    ax_btn_regen = plt.axes([0.78, 0.03, 0.12, 0.04])
+    ax_sl_alpha  = plt.axes([0.25, 0.14, 0.50, 0.025])
+    ax_sl_n      = plt.axes([0.25, 0.09, 0.50, 0.025])
 
-    if not animation_running:
-        # Arrowheads at every streamline's current tip
-        progress = current_frame[0] / NUM_FRAMES
-        X_t, Y_t, U_a, V_a, C_a = [], [], [], [], []
-        for stream in streamlines:
-            pts  = stream['points']
-            cols = stream['colors']
-            n_pts = max(2, int(len(pts) * progress))
-            if n_pts >= 2:
-                tip  = pts[n_pts - 1]
-                prev = pts[n_pts - 2]
-                d = tip - prev
-                L = np.linalg.norm(d)
-                if L > 1e-9:
-                    X_t.append(tip[0]);  Y_t.append(tip[1])
-                    U_a.append(d[0]/L);  V_a.append(d[1]/L)
-                    tip_c  = cols[n_pts-2] if len(cols) > 0 else vmin_global
-                    norm_c = (tip_c - vmin_global) / max(vmax_global - vmin_global, 1e-9)
-                    C_a.append(CMAP(norm_c))
-        if X_t:
-            pause_quiver[0] = ax.quiver(
-                X_t, Y_t, U_a, V_a,
-                color=C_a, alpha=0.85,
-                scale=22, width=0.004,
-                headwidth=4, headlength=5, zorder=5,
-            )
-    else:
-        if pause_quiver[0] is not None:
-            pause_quiver[0].remove()
-            pause_quiver[0] = None
+    btn_pause = Button(ax_btn_pause, 'Pause')
+    btn_regen = Button(ax_btn_regen, 'Regenerate',
+                       color='#1e3a2a', hovercolor='#2d5a3a')
+    sl_alpha  = Slider(ax_sl_alpha, 'α  (max. expression)', 1.0, 20.0,
+                       valinit=ALPHA, valstep=0.5)
+    sl_n      = Slider(ax_sl_n,     'n  (cooperativity)',   1,   5,
+                       valinit=N,    valstep=1)
+
+    def toggle_pause(event):
+        global animation_running
+        animation_running = not animation_running
+        btn_pause.label.set_text('Play' if not animation_running else 'Pause')
+
+        if not animation_running:
+            progress = current_frame[0] / NUM_FRAMES
+            X_t, Y_t, U_a, V_a, C_a = [], [], [], [], []
+            for stream in streamlines:
+                pts  = stream['points']
+                cols = stream['colors']
+                n_pts = max(2, int(len(pts) * progress))
+                if n_pts >= 2:
+                    tip  = pts[n_pts - 1]
+                    prev = pts[n_pts - 2]
+                    d = tip - prev
+                    L = np.linalg.norm(d)
+                    if L > 1e-9:
+                        X_t.append(tip[0]);  Y_t.append(tip[1])
+                        U_a.append(d[0]/L);  V_a.append(d[1]/L)
+                        tip_c  = cols[n_pts-2] if len(cols) > 0 else vmin_global
+                        norm_c = (tip_c - vmin_global) / max(vmax_global - vmin_global, 1e-9)
+                        C_a.append(CMAP(norm_c))
+            if X_t:
+                pause_quiver[0] = ax.quiver(
+                    X_t, Y_t, U_a, V_a,
+                    color=C_a, alpha=0.85,
+                    scale=22, width=0.004,
+                    headwidth=4, headlength=5, zorder=5,
+                )
+        else:
+            if pause_quiver[0] is not None:
+                pause_quiver[0].remove()
+                pause_quiver[0] = None
+
+        update_frame()
+
+    def on_regenerate(event):
+        rebuild(sl_alpha.val, int(sl_n.val))
+
+    btn_pause.on_clicked(toggle_pause)
+    btn_regen.on_clicked(on_regenerate)
 
     update_frame()
-
-
-def on_regenerate(event):
-    rebuild(sl_alpha.val, int(sl_n.val))
-
-
-btn_pause.on_clicked(toggle_pause)
-btn_regen.on_clicked(on_regenerate)
-
-plt.show()
+    timer = fig.canvas.new_timer(interval=50)
+    timer.add_callback(update_frame)
+    timer.start()
+    plt.show()
