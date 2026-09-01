@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Full State-Space Population Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:wght@300;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117; --panel: #161a24; --border: #262c3d;
+    --healthy: #5af0c4; --diseased: #f07a5a; --text: #c8d0e8;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 10px; font-size: 14px; }
+  .container { width: 100%; max-width: 1250px; display: grid; grid-template-columns: 350px 1fr; gap: 15px; }
+  
+  .controls { background: var(--panel); padding: 15px; border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; gap: 8px; max-height: 90vh; overflow-y: auto; }
+  
+  .plot-grid { 
+    display: grid; grid-template-columns: 1fr 100px; grid-template-rows: 100px 1fr; gap: 10px;
+    background: var(--panel); padding: 15px; border-radius: 8px; border: 1px solid var(--border);
+  }
+  .canvas-container { position: relative; background: #0b0d12; border-radius: 4px; overflow: hidden; }
+  #main-wrap { grid-column: 1; grid-row: 2; height: 580px; }
+  #top-wrap { grid-column: 1; grid-row: 1; height: 100px; }
+  #right-wrap { grid-column: 2; grid-row: 2; height: 580px; }
+  
+  canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+  
+  h2 { font-family: 'Fraunces', serif; font-size: 1.2rem; margin: 0; color: #fff; text-align: center; margin-bottom: 10px; }
+  .slider-group { margin-bottom: 5px; padding: 8px; border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; }
+  .slider-label { display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 2px; color: #8a94ad; }
+  .val-hl { color: #fff; font-weight: 500; }
+  input[type=range] { width: 100%; cursor: pointer; accent-color: var(--healthy); margin-bottom: 4px;}
+  .group-title { font-size: 0.7rem; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); padding-bottom: 3px;}
+  
+  .instruction { font-size: 0.7rem; color: #6a7090; line-height: 1.3; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px;}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <aside class="controls">
+    <h2>Landscape Controls</h2>
+    
+    <div class="slider-group">
+      <div class="slider-label">Population Prevalence <span class="val-hl" id="v-prev">50%</span></div>
+      <input type="range" id="s-prev" min="0" max="100" value="50">
+    </div>
+
+    <div class="slider-group" style="border-left: 3px solid var(--healthy);">
+      <div class="group-title" style="color: var(--healthy);">Healthy State (Attractor A)</div>
+      <div class="slider-label">Position X <span class="val-hl" id="v-hmx">3.0</span></div>
+      <input type="range" id="s-hmx" min="1" max="9" step="0.1" value="3">
+      <div class="slider-label">Position Y <span class="val-hl" id="v-hmy">3.0</span></div>
+      <input type="range" id="s-hmy" min="1" max="9" step="0.1" value="3">
+      <div class="slider-label">X-Dissipation <span class="val-hl" id="v-hdx">1.5</span></div>
+      <input type="range" id="s-hdx" min="0.2" max="2.5" step="0.1" value="1.5">
+      <div class="slider-label">Y-Dissipation <span class="val-hl" id="v-hdy">1.5</span></div>
+      <input type="range" id="s-hdy" min="0.2" max="2.5" step="0.1" value="1.5">
+    </div>
+
+    <div class="slider-group" style="border-left: 3px solid var(--diseased);">
+      <div class="group-title" style="color: var(--diseased);">Diseased State (Attractor B)</div>
+      <div class="slider-label">Position X <span class="val-hl" id="v-dmx">7.0</span></div>
+      <input type="range" id="s-dmx" min="1" max="9" step="0.1" value="7">
+      <div class="slider-label">Position Y <span class="val-hl" id="v-dmy">7.0</span></div>
+      <input type="range" id="s-dmy" min="1" max="9" step="0.1" value="7">
+      <div class="slider-label">X-Dissipation <span class="val-hl" id="v-ddx">0.7</span></div>
+      <input type="range" id="s-ddx" min="0.2" max="2.5" step="0.1" value="0.7">
+      <div class="slider-label">Y-Dissipation <span class="val-hl" id="v-ddy">0.7</span></div>
+      <input type="range" id="s-ddy" min="0.2" max="2.5" step="0.1" value="0.7">
+    </div>
+
+    <div class="instruction">
+      <strong>Multidimensional Tip:</strong> Set X-Dissipation high and Y-Dissipation low. Observe how the "mountain" becomes an elongated ellipse.
+    </div>
+  </aside>
+
+  <div class="plot-grid">
+    <div id="top-wrap" class="canvas-container"><canvas id="c-top"></canvas></div>
+    <div id="main-wrap" class="canvas-container">
+      <canvas id="c-main-bg"></canvas>
+      <canvas id="c-main-fg"></canvas>
+    </div>
+    <div id="right-wrap" class="canvas-container"><canvas id="c-right"></canvas></div>
+  </div>
+</div>
+
+<script>
+const canvases = { 
+    mainBG: document.getElementById('c-main-bg'), 
+    mainFG: document.getElementById('c-main-fg'), 
+    top: document.getElementById('c-top'), 
+    right: document.getElementById('c-right') 
+};
+const ctxs = { 
+    mBG: canvases.mainBG.getContext('2d'), 
+    mFG: canvases.mainFG.getContext('2d'), 
+    t: canvases.top.getContext('2d'), 
+    r: canvases.right.getContext('2d') 
+};
+
+function resize() {
+  Object.values(canvases).forEach(c => { 
+      c.width = c.parentElement.clientWidth; 
+      c.height = c.parentElement.clientHeight; 
+  });
+  render();
+}
+
+function g1d(x, mu, sigma) { 
+    return Math.exp(-0.5 * Math.pow((x - mu) / sigma, 2)) / (sigma * Math.sqrt(2 * Math.PI)); 
+}
+
+function render() {
+  const prev = document.getElementById('s-prev').value / 100;
+  
+  const hMean = { x: parseFloat(document.getElementById('s-hmx').value), y: parseFloat(document.getElementById('s-hmy').value) };
+  const dMean = { x: parseFloat(document.getElementById('s-dmx').value), y: parseFloat(document.getElementById('s-dmy').value) };
+  
+  // Sigma is inverse of dissipation
+  const hsx = 0.5 / parseFloat(document.getElementById('s-hdx').value);
+  const hsy = 0.5 / parseFloat(document.getElementById('s-hdy').value);
+  const dsx = 0.5 / parseFloat(document.getElementById('s-ddx').value);
+  const dsy = 0.5 / parseFloat(document.getElementById('s-ddy').value);
+
+  // Update Labels
+  document.getElementById('v-prev').innerText = (prev*100).toFixed(0) + '%';
+  document.getElementById('v-hmx').innerText = hMean.x.toFixed(1);
+  document.getElementById('v-hmy').innerText = hMean.y.toFixed(1);
+  document.getElementById('v-dmx').innerText = dMean.x.toFixed(1);
+  document.getElementById('v-dmy').innerText = dMean.y.toFixed(1);
+  document.getElementById('v-hdx').innerText = document.getElementById('s-hdx').value;
+  document.getElementById('v-hdy').innerText = document.getElementById('s-hdy').value;
+  document.getElementById('v-ddx').innerText = document.getElementById('s-ddx').value;
+  document.getElementById('v-ddy').innerText = document.getElementById('s-ddy').value;
+
+  const w = canvases.mainBG.width, h = canvases.mainBG.height;
+
+  // 1. Draw Heatmap (2D Density)
+  ctxs.mBG.clearRect(0,0,w,h);
+  const step = 6;
+  for(let i=0; i<w; i+=step) {
+    for(let j=0; j<h; j+=step) {
+      const x = (i/w) * 10, y = (1 - j/h) * 10;
+      const valH = (1-prev) * g1d(x, hMean.x, hsx) * g1d(y, hMean.y, hsy);
+      const valD = prev * g1d(x, dMean.x, dsx) * g1d(y, dMean.y, dsy);
+      if(valH > 0.004) { ctxs.mBG.fillStyle = `rgba(90, 240, 196, ${valH*10})`; ctxs.mBG.fillRect(i,j,step,step); }
+      if(valD > 0.004) { ctxs.mBG.fillStyle = `rgba(240, 122, 90, ${valD*10})`; ctxs.mBG.fillRect(i,j,step,step); }
+    }
+  }
+
+  // 2. Draw Marginals (Top & Right)
+  const tw = canvases.top.width, th = canvases.top.height;
+  const rw = canvases.right.width, rh = canvases.right.height;
+  
+  ctxs.t.clearRect(0,0,tw,th);
+  ctxs.t.beginPath();
+  ctxs.t.strokeStyle = '#fff';
+  for(let i=0; i<tw; i++) {
+    const x = (i/tw) * 10;
+    const yVal = (1-prev)*g1d(x, hMean.x, hsx) + prev*g1d(x, dMean.x, dsx);
+    ctxs.t.lineTo(i, th - (yVal * th * 0.75));
+  }
+  ctxs.t.stroke();
+
+  ctxs.r.clearRect(0,0,rw,rh);
+  ctxs.r.beginPath();
+  ctxs.r.strokeStyle = '#fff';
+  for(let j=0; j<rh; j++) {
+    const y = (1 - j/rh) * 10;
+    const xVal = (1-prev)*g1d(y, hMean.y, hsy) + prev*g1d(y, dMean.y, dsy);
+    ctxs.r.lineTo(xVal * rw * 0.75, j);
+  }
+  ctxs.r.stroke();
+
+  // 3. Draw Samples (Point Cloud)
+  ctxs.mFG.clearRect(0,0,w,h);
+  for(let n=0; n<200; n++) {
+    const isD = Math.random() < prev;
+    const m = isD ? dMean : hMean;
+    const sx = isD ? dsx : hsx, sy = isD ? dsy : hsy;
+    
+    // Normal sampling (Box-Muller)
+    const u1 = Math.random(), u2 = Math.random();
+    const rx = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    const ry = Math.sqrt(-2 * Math.log(u1)) * Math.sin(2 * Math.PI * u2);
+    
+    const px = (m.x + rx * sx) / 10 * w;
+    const py = (1 - (m.y + ry * sy) / 10) * h;
+    
+    if(px>=0 && px<=w && py>=0 && py<=h) {
+      ctxs.mFG.beginPath(); ctxs.mFG.arc(px, py, 2.5, 0, Math.PI*2);
+      ctxs.mFG.fillStyle = isD ? '#f07a5a' : '#5af0c4'; ctxs.mFG.fill();
+    }
+  }
+}
+
+window.addEventListener('resize', resize);
+document.querySelectorAll('input').forEach(i => i.addEventListener('input', render));
+resize();
+</script>
+</body>
+</html>
